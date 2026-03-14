@@ -271,20 +271,23 @@ test('FreezeHost 自动续期', async () => {
         const finalUrl = page.url();
 
         // ── 结果判断 ──────────────────────────────────────────
-        if (finalUrl.includes('success=RENEWED')) {
-            console.log('🎉 续期成功！');
-            await sendTG('✅ 续期成功！');
-            expect(finalUrl).toContain('success=RENEWED');
-
-        } else if (finalUrl.includes('err=CANNOTAFFORDRENEWAL')) {
-            console.log('⚠️ 余额不足，无法续期');
-            await sendTG('⚠️ 余额不足，请前往挂机页面赚取金币');
-            test.skip(true, '余额不足');
-
-        } else {
-            await sendTG(`⚠️ 续期结果未知：${finalUrl}`);
-            throw new Error('续期结果未知，URL: ' + finalUrl);
-        }
+         if (finalUrl.includes('success=RENEWED')) {
+             console.log('🎉 续期成功！');
+             await sendTG('✅ 续期成功！');
+             expect(finalUrl).toContain('success=RENEWED');
+         } else if (finalUrl.includes('err=CANNOTAFFORDRENEWAL')) {
+             console.log('⚠️ 余额不足，无法续期');
+             await sendTG('⚠️ 余额不足，请前往挂机页面赚取金币');
+             test.skip(true, '余额不足');
+         } else if (finalUrl.includes('err=TOOEARLY')) {
+             console.log('⏰ 尚未到续期时间，无需操作');
+             await sendTG('⏰ 尚未到续期时间，今日已续期或暂不需要续期');
+             // 不报错，正常通过
+             
+         } else {
+             await sendTG(`⚠️ 续期结果未知：${finalUrl}`);
+             throw new Error('续期结果未知，URL: ' + finalUrl);
+         }
 
     } catch (e) {
         if (!e.message?.includes('余额不足')) {
