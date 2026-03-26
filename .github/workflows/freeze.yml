@@ -3,14 +3,18 @@ on:
   schedule:
     - cron: '0 8 */10 * *'
   workflow_dispatch:
+
 jobs:
   renew:
     name: 🔄 执行续期
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: 📥 拉取代码
+      - name: 📥 拉取私库代码
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/FreezeHost-Keep-Private
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
       - name: 🟢 安装 Node.js
         uses: actions/setup-node@v4
@@ -28,7 +32,8 @@ jobs:
         env:
           GOST_PROXY: ${{ secrets.GOST_PROXY }}
         run: |
-          VERSION=$(curl -s https://api.github.com/repos/ginuerzh/gost/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
+          VERSION=$(curl -s https://api.github.com/repos/ginuerzh/gost/releases/latest \
+            | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
           echo "📦 GOST 版本: $VERSION"
           wget -q "https://github.com/ginuerzh/gost/releases/download/v${VERSION}/gost_${VERSION}_linux_amd64.tar.gz"
           tar -xzf "gost_${VERSION}_linux_amd64.tar.gz"
@@ -36,7 +41,8 @@ jobs:
           nohup ./gost -L http://:8080 -F "$GOST_PROXY" > gost.log 2>&1 &
           sleep 3
           echo "✅ GOST 已启动，测试连通性..."
-          curl -s -x http://127.0.0.1:8080 https://api.ipify.org | sed 's/\.[0-9]*$/.**/' && echo
+          curl -s -x http://127.0.0.1:8080 https://api.ipify.org \
+            | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\.\)[0-9]*/\1**/g'
 
       - name: 🚀 运行续期脚本
         env:
