@@ -1,39 +1,35 @@
-name: 🎮 FreezeHost 自动续期
+name: FreezeHost-Renew
+
 on:
   schedule:
-    - cron: '0 0 * * *'   # 每天 UTC 00:00 = 北京时间 08:00
+    - cron: '0 1 * * *'   # 每天 UTC 01:00（北京时间 10:00）
   workflow_dispatch:
 
 jobs:
   renew:
-    name: 🔄 执行续期
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    
     steps:
-      - name: 📥 拉取私库代码
+      - name: 📥 拉取私库脚本
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/Freeze-Renew-Private
+          repository: ${{ github.repository_owner }}/ActionNode-Start-Private
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: private
 
-      - name: 🟢 安装 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+      - name: 📂 复制脚本到工作目录
+        run: cp private/freeze_renew.py freeze_renew.py
 
-      - name: 📦 安装依赖
-        run: npm install
-
-      - name: 🌐 安装 Playwright 浏览器
-        run: npx playwright install chromium --with-deps
+      - name: 🐍 安装依赖
+        run: pip install requests
 
       - name: 🛡️ 启动 GOST 代理转发
         if: ${{ env.GOST_PROXY != '' }}
         env:
           GOST_PROXY: ${{ secrets.GOST_PROXY }}
         run: |
-          VERSION=$(curl -s https://api.github.com/repos/ginuerzh/gost/releases/latest \
-            | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
+          VERSION=$(curl -s https://api.github.com/repos/ginuerzh/gost/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
           echo "📦 GOST 版本: $VERSION"
           wget -q "https://github.com/ginuerzh/gost/releases/download/v${VERSION}/gost_${VERSION}_linux_amd64.tar.gz"
           tar -xzf "gost_${VERSION}_linux_amd64.tar.gz"
@@ -41,20 +37,11 @@ jobs:
           nohup ./gost -L http://:8080 -F "$GOST_PROXY" > gost.log 2>&1 &
           sleep 3
           echo "✅ GOST 已启动，测试连通性..."
-          curl -s -x http://127.0.0.1:8080 https://api.ipify.org \
-            | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\.\)[0-9]*/\1**/g'
+          curl -s -x http://127.0.0.1:8080 https://api.ipify.org | sed 's/\.[0-9]*$/.**/' && echo
 
-      - name: 🚀 运行续期脚本
+      - name: 🔄 执行自动续期
         env:
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          TG_BOT:               ${{ secrets.TG_BOT }}
-          GOST_PROXY:           http://127.0.0.1:8080
-        run: npx playwright test tests/freeze.spec.js
-
-      - name: 📸 上传失败截图
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: failure-screenshots
-          path: test-results/
-          retention-days: 7
+          FREEZE_TOKEN: ${{ secrets.FREEZE_TOKEN }}
+          TG_BOT:         ${{ secrets.TG_BOT }}
+          GOST_PROXY:     ${{ secrets.GOST_PROXY }}
+        run: python3 freeze_renew.py
