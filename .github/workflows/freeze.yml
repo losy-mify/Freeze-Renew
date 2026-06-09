@@ -14,7 +14,7 @@ jobs:
       - name: 📥 拉取私库脚本
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/ActionNode-Start-Private
+          repository: ${{ github.repository_owner }}/Freeze-Renew-Private
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private
 
