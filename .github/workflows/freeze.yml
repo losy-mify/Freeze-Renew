@@ -1,8 +1,6 @@
 name: FreezeHost-Renew
 
 on:
-  schedule:
-    - cron: '0 1 * * *'   # 每天 UTC 01:00（北京时间 10:00）
   workflow_dispatch:
 
 jobs:
